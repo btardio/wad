@@ -1,0 +1,57 @@
+Metadata-Version: 1.1
+Name: django-wad
+Version: 0.0.1
+Summary: A collection of Django apps to syncronize with AdWords API.
+Home-page: https://www.github.com/btardio/wad
+Author: Brandon Tardio
+Author-email: btardio@gmail.com
+License: GNU GPL3 License
+Description: ﻿==========
+        Django Wad
+        ==========
+        
+        Wad is a collection of Django apps that syncronize database tables with the AdWords API.
+        
+        The AdWords API is currently read from storage and more information about populating the googleads.yaml file can be found on the Google AdWords API website.
+        
+        Detailed HTML documentation about using Django Wad can be found in the “docs” directory. 
+        
+        Sphinx is a program that generates HTML documentation from reStructuredText. Sphinx related files are in the “docs/sphinx” directory.
+        
+        Quick Start
+        -----------
+        
+        1. Add Django Wad applications to your INSTALLED_APPS setting like this::
+        
+            INSTALLED_APPS = [
+                ....
+                'wad_Budget',
+                'wad_Campaign',
+            ]
+        
+        2. Run `python manage.py makemigrations` to create Django Wad migrations.
+        
+        3. Run `python manage.py migrate` to apply Django Wad migrations.
+        
+        4. Run `python manage.py test` to test Django Wad functionality.
+        
+        5. Consult the HTML docs to determine which synchronize commands to run, such as `python manage.py budgetsync`.
+        
+        6. Start the development server and visit http://127.0.0.1:8000/admin/ to view the items synchronized. ( Remember that Google API Developer accounts are limited to 10,000 queries a day )
+        
+        
+        
+        
+Platform: UNKNOWN
+Classifier: Environment :: Web Environment
+Classifier: Framework :: Django
+Classifier: Framework :: Django :: 1.9
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Database
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7.11
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
