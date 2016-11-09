@@ -1,2 +1,0 @@
-# wad
-Django AdWords
