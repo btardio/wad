@@ -10,6 +10,15 @@ Detailed HTML documentation about using Django Wad can be found in the “docs�
 
 Sphinx is a program that generates HTML documentation from reStructuredText. Sphinx related files are in the “docs/sphinx” directory.
 
+Install
+-------
+
+1. git clone http://github.com/btardio/wad/dist/django-wad-0.0.1.tar.gz
+
+2. pip install django-wad-0.0.1.tar.gz
+
+This install files in your site-packages directory, a new directory is created for each wad module. ie: wad_Campaign, wad_Budget
+
 Quick Start
 -----------
 
