@@ -64,5 +64,6 @@ Running Tests
 -------------
 
 python manage.py test wad_Budget
+
 python manage.py test wad_Campaign
 
