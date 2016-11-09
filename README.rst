@@ -26,6 +26,17 @@ OR
 
 This installs files in your site-packages directory, a new directory is created for each wad module. ie: wad_Campaign, wad_Budget
 
+Install Requirements
+--------------------
+
+Google AdWords API Lib
+
+1. pip install googleads
+
+Configure a googleads.yaml file and place it in your home directory.
+
+Configuring googleads goes beyond the scope of this documentation. At the very minimum a googleads.yaml file will need to be placed in your home directory.
+
 Quick Start
 -----------
 
@@ -48,4 +59,10 @@ Quick Start
 6. Start the development server and visit http://127.0.0.1:8000/admin/ to view the items synchronized. ( Remember that Google API Developer accounts are limited to 10,000 queries a day )
 
 
+
+Running Tests
+-------------
+
+python manage.py test wad_Budget
+python manage.py test wad_Campaign
 
