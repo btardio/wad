@@ -1,0 +1,3 @@
+For developing wad, clone and create a new project using the clone as your python path
+
+export PYTHONPATH=${PYTHONPATH}:/home/btardio/projects/adwords/django-wad-git-master/wad
