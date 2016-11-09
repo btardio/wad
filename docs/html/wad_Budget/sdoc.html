@@ -1,0 +1,176 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Budget Class &#8212; wad 00.00.01 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '00.00.01',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="top" title="wad 00.00.01 documentation" href="../index.html" />
+    <link rel="next" title="Budget Management Commands" href="management/commands/sdoc.html" />
+    <link rel="prev" title="Welcome to wad’s documentation!" href="../index.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="budget-class">
+<h1>Budget Class<a class="headerlink" href="#budget-class" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="wad_Budget.models.Budget">
+<em class="property">class </em><code class="descclassname">wad_Budget.models.</code><code class="descname">Budget</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/wad_Budget/models.html#Budget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#wad_Budget.models.Budget" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Budget class stores budgetid, budgetname, budgetamount and 
+budgetstatus corresponding to an AdWords Budget object.</p>
+<dl class="staticmethod">
+<dt id="wad_Budget.models.Budget.addbudget">
+<em class="property">static </em><code class="descname">addbudget</code><span class="sig-paren">(</span><em>client</em>, <em>inbudgetname</em>, <em>inbudgetamount</em>, <em>inbudgetdeliverymethod=None</em>, <em>inbudgetstatus=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/wad_Budget/models.html#Budget.addbudget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#wad_Budget.models.Budget.addbudget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add an AdWords budget entry.</p>
+<p>Attempts to add a budget from AdWords. 
+Does not check if the budget exists.</p>
+<p>Note : Does not affect the Django database.</p>
+<p><strong>Parameters</strong></p>
+<dl class="docutils">
+<dt>client : googleads.adwords.AdWordsClient object</dt>
+<dd>The client to request API service from.</dd>
+<dt>inbudgetname : str</dt>
+<dd>The budget name.</dd>
+<dt>inbudgetamount : int</dt>
+<dd>The micro value amount. Amount in micros.</dd>
+<dt>inbudgetdeliverymethod : str</dt>
+<dd>Enumerated str type, either STANDARD, ACCELERATED, TESTING</dd>
+<dt>inbudgetstatus : str</dt>
+<dd>Enumerated str type, either REMOVED, PAUSED, ENABLED, TESTING</dd>
+</dl>
+<p><strong>Returns</strong></p>
+<p>int : newly created budget id</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="wad_Budget.models.Budget.removebudget">
+<em class="property">static </em><code class="descname">removebudget</code><span class="sig-paren">(</span><em>client</em>, <em>inbudgetid</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/wad_Budget/models.html#Budget.removebudget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#wad_Budget.models.Budget.removebudget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove an AdWords budget entry.</p>
+<p>Attempts to remove a budget from AdWords. Does not 
+check if the budget exists.</p>
+<p>Note : Does not affect the Django database.</p>
+<p><strong>Parameters</strong></p>
+<dl class="docutils">
+<dt>client : googleads.adwords.AdWordsClient object</dt>
+<dd>The client to request API service from.</dd>
+<dt>inbudgetid : int </dt>
+<dd>The id of the budget.</dd>
+</dl>
+<p><strong>Returns</strong></p>
+<dl class="docutils">
+<dt>class : { rremoved[], rmodified[], radded[] }</dt>
+<dd>rremoved : list of instances removed from Django
+rmodified : list of instances modified in Django
+radded : list of instances added to Django</dd>
+</dl>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="wad_Budget.models.Budget.sync">
+<em class="property">static </em><code class="descname">sync</code><span class="sig-paren">(</span><em>client</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/wad_Budget/models.html#Budget.sync"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#wad_Budget.models.Budget.sync" title="Permalink to this definition">¶</a></dt>
+<dd><p>Synchronize AdWords budgets with Django.</p>
+<p>Queries all budgets in AdWords and inserts, deletes or modifies
+Django database entries corresponding to the AdWords entries.</p>
+<p>Note : AdWords budgets with status &#8220;REMOVED&#8221; are not sychronized.</p>
+<p><strong>Parameters</strong></p>
+<dl class="docutils">
+<dt>client : googleads.adwords.AdWordsClient object</dt>
+<dd>The client to request API service from.</dd>
+</dl>
+<p><strong>Returns</strong></p>
+<dl class="docutils">
+<dt>class : { rremoved[], rmodified[], radded[] }</dt>
+<dd>rremoved : list of instances removed from Django
+rmodified : list of instances modified in Django
+radded : list of instances added to Django</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="../index.html" title="previous chapter">Welcome to wad&#8217;s documentation!</a></li>
+      <li>Next: <a href="management/commands/sdoc.html" title="next chapter">Budget Management Commands</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/wad_Budget/sdoc.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Brandon C Tardio.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.8</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="../_sources/wad_Budget/sdoc.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

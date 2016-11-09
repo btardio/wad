@@ -1,0 +1,638 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>wad_Budget.models &#8212; wad 00.00.01 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '00.00.01',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="top" title="wad 00.00.01 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for wad_Budget.models</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">django.db</span> <span class="k">import</span> <span class="n">models</span>
+<span class="kn">import</span> <span class="nn">suds</span>
+<span class="kn">from</span> <span class="nn">googleads</span> <span class="k">import</span> <span class="n">adwords</span>
+<span class="kn">from</span> <span class="nn">wad.query</span> <span class="k">import</span> <span class="n">list_from_query</span>
+<span class="kn">from</span> <span class="nn">django.core.exceptions</span> <span class="k">import</span> <span class="n">ObjectDoesNotExist</span>
+
+
+<div class="viewcode-block" id="Budget"><a class="viewcode-back" href="../../wad_Budget/sdoc.html#wad_Budget.models.Budget">[docs]</a><span class="k">class</span> <span class="nc">Budget</span> <span class="p">(</span> <span class="n">models</span><span class="o">.</span><span class="n">Model</span> <span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;The Budget class stores budgetid, budgetname, budgetamount and </span>
+<span class="sd">     budgetstatus corresponding to an AdWords Budget object.&quot;&quot;&quot;</span>
+
+  <span class="n">STATE_ENABLED</span> <span class="o">=</span> <span class="s1">&#39;ENABLED&#39;</span>
+  <span class="n">STATE_PAUSED</span> <span class="o">=</span> <span class="s1">&#39;PAUSED&#39;</span>
+  <span class="n">STATE_REMOVED</span> <span class="o">=</span> <span class="s1">&#39;REMOVED&#39;</span>
+  <span class="n">STATE_TESTING</span> <span class="o">=</span> <span class="s1">&#39;TESTING&#39;</span>
+  <span class="n">STATE_CHOICES</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="p">(</span><span class="n">STATE_ENABLED</span><span class="p">,</span> <span class="s1">&#39;Enabled&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">STATE_PAUSED</span><span class="p">,</span> <span class="s1">&#39;Paused&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">STATE_REMOVED</span><span class="p">,</span> <span class="s1">&#39;Removed&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">STATE_TESTING</span><span class="p">,</span> <span class="s1">&#39;Testing&#39;</span><span class="p">),</span>
+    <span class="p">)</span>
+  
+  <span class="n">BUDGET_DELIVERY_STANDARD</span> <span class="o">=</span> <span class="s1">&#39;STANDARD&#39;</span>
+  <span class="n">BUDGET_DELIVERY_ACCELERATED</span> <span class="o">=</span> <span class="s1">&#39;ACCELERATED&#39;</span>
+  <span class="n">BUDGET_DELIVERY_TESTING</span> <span class="o">=</span> <span class="s1">&#39;TESTING&#39;</span>
+  <span class="n">BUDGET_DELIVERY_CHOICES</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="p">(</span><span class="n">BUDGET_DELIVERY_STANDARD</span><span class="p">,</span> <span class="s1">&#39;Standard&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">BUDGET_DELIVERY_ACCELERATED</span><span class="p">,</span> <span class="s1">&#39;Accelerated&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">BUDGET_DELIVERY_TESTING</span><span class="p">,</span> <span class="s1">&#39;Testing&#39;</span><span class="p">),</span>
+    <span class="p">)</span>
+
+  <span class="c1"># selector: BudgetId</span>
+  <span class="n">budgetid</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BigIntegerField</span><span class="p">(</span><span class="n">unique</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+  
+  <span class="c1"># selector: BudgetName</span>
+  <span class="n">budgetname</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">255</span><span class="p">,</span> 
+                                <span class="n">help_text</span><span class="o">=</span><span class="s1">&#39;Budget name&#39;</span><span class="p">)</span>
+  
+  <span class="n">budgetamount</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BigIntegerField</span><span class="p">()</span> <span class="c1"># selector: Amount</span>
+  
+  <span class="c1"># budget delivery method is not a part of Budget, and is not </span>
+  <span class="c1"># queryable from budget service</span>
+  <span class="c1"># selector: DeliveryMethod</span>
+  <span class="n">budgetdeliverymethod</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+                          <span class="n">max_length</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> 
+                          <span class="n">choices</span><span class="o">=</span><span class="n">BUDGET_DELIVERY_CHOICES</span><span class="p">)</span>
+  
+  <span class="c1"># selector: BudgetStatus</span>
+  <span class="n">budgetstatus</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> 
+                                  <span class="n">choices</span><span class="o">=</span><span class="n">STATE_CHOICES</span><span class="p">)</span> 
+  
+  <span class="n">internalbudgetrefreshdate</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span><span class="n">auto_now_add</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+  
+  <span class="n">internalbudgetcreationdate</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span><span class="n">auto_now_add</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+  
+  <span class="c1">#</span>
+  <span class="c1"># Returns the service obj</span>
+  <span class="c1">#</span>
+  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">serviceobj</span><span class="p">(</span> <span class="n">client</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the BudgetService object</span>
+<span class="sd">        </span>
+<span class="sd">    Note \: Does not affect the Django database.</span>
+<span class="sd">    </span>
+<span class="sd">    **Parameters**</span>
+<span class="sd">    </span>
+<span class="sd">    client \: googleads.adwords.AdWordsClient object</span>
+<span class="sd">      The client to request API service from.</span>
+<span class="sd">      </span>
+<span class="sd">    **Returns**</span>
+<span class="sd">    </span>
+<span class="sd">    googleads.common.SudsServiceProxy \: the BudgetService object</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">rval</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">GetService</span><span class="p">(</span><span class="s1">&#39;BudgetService&#39;</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s1">&#39;v201609&#39;</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">rval</span>
+  
+  
+  
+  <span class="c1">#</span>
+  <span class="c1"># Returns the query text for querying adwords api</span>
+  <span class="c1">#</span>
+  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">querytext</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the query text for querying adwords api</span>
+<span class="sd">    </span>
+<span class="sd">    Ignores budgets with REMOVED status</span>
+<span class="sd">        </span>
+<span class="sd">    Note \: Does not affect the Django database.</span>
+<span class="sd">    </span>
+<span class="sd">    **Parameters**</span>
+<span class="sd">    </span>
+<span class="sd">    None</span>
+<span class="sd">      </span>
+<span class="sd">    **Returns**</span>
+<span class="sd">    </span>
+<span class="sd">    str \: the AWQL query string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rval</span> <span class="o">=</span> <span class="s1">&#39;SELECT BudgetId, BudgetName, Amount, BudgetStatus&#39;</span>
+    <span class="n">rval</span> <span class="o">+=</span> <span class="s1">&#39; WHERE BudgetStatus != &quot;REMOVED&quot;&#39;</span>
+    
+    <span class="k">return</span> <span class="n">rval</span>
+
+
+  <span class="c1">#</span>
+  <span class="c1"># Returns the query text for querying adwords api</span>
+  <span class="c1">#</span>
+  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">querytext_includeremoved</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the query text for querying adwords api</span>
+<span class="sd">        </span>
+<span class="sd">    Note \: Does not affect the Django database.</span>
+<span class="sd">    </span>
+<span class="sd">    **Parameters**</span>
+<span class="sd">    </span>
+<span class="sd">    None</span>
+<span class="sd">      </span>
+<span class="sd">    **Returns**</span>
+<span class="sd">    </span>
+<span class="sd">    str \: the AWQL query string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s1">&#39;SELECT BudgetId, BudgetName, Amount, BudgetStatus&#39;</span>
+
+
+
+  <span class="c1">#</span>
+  <span class="c1"># Returns the dictionary needed to add a budget</span>
+  <span class="c1">#</span>
+  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">adddict</span><span class="p">(</span><span class="n">inbudgetname</span><span class="p">,</span> <span class="n">inbudgetamount</span><span class="p">,</span> 
+              <span class="n">inbudgetdeliverymethod</span><span class="p">,</span> <span class="n">inbudgetstatus</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a dictionary object for adding a budget to the AdWords API.</span>
+<span class="sd">    </span>
+<span class="sd">    Uses operator ADD and OPERAND name, amount, deliverymethod, </span>
+<span class="sd">    status - constructs an AdWords/suds compatable dictionary</span>
+<span class="sd">    </span>
+<span class="sd">    Note \: Does not affect the Django database.</span>
+<span class="sd">    </span>
+<span class="sd">    **Parameters**</span>
+<span class="sd">    </span>
+<span class="sd">    inbudgetname \: str</span>
+<span class="sd">      The name of the budget</span>
+<span class="sd">    inbudgetamount \: int / str</span>
+<span class="sd">      The budget amount in mirco units.</span>
+<span class="sd">    inbudgetdeliverymethod \: str</span>
+<span class="sd">      The delivery method, either STANDARD, ACCELERATED, TESTING</span>
+<span class="sd">    inbudgetstatus \: str</span>
+<span class="sd">      The budget status, either ENABLED, PAUSED, REMOVED, TESTING</span>
+<span class="sd">      </span>
+<span class="sd">    **Returns**</span>
+<span class="sd">    </span>
+<span class="sd">    dict{} \: add budget dictionary </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    
+    <span class="n">rval</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="s1">&#39;operator&#39;</span><span class="p">:</span> <span class="s1">&#39;ADD&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;operand&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">inbudgetname</span><span class="p">,</span>
+        <span class="s1">&#39;amount&#39;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="s1">&#39;microAmount&#39;</span><span class="p">:</span> <span class="n">inbudgetamount</span><span class="p">,</span>
+          <span class="p">},</span>
+        <span class="s1">&#39;deliveryMethod&#39;</span><span class="p">:</span> <span class="n">inbudgetdeliverymethod</span><span class="p">,</span>
+        <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="n">inbudgetstatus</span><span class="p">,</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">rval</span>
+    
+  <span class="c1">#</span>
+  <span class="c1"># Returns the dictionary needed to delete a budget</span>
+  <span class="c1">#</span>
+  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">deldict</span> <span class="p">(</span> <span class="n">inbudgetid</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a dictionary object for deleting a budget from the </span>
+<span class="sd">    AdWords API.</span>
+<span class="sd">    </span>
+<span class="sd">    Using operator REMOVE and OPERAND inbudgetid, constructs </span>
+<span class="sd">    an AdWords/suds compatable dictionary</span>
+<span class="sd">    </span>
+<span class="sd">    Note \: Does not affect the Django database.</span>
+<span class="sd">    </span>
+<span class="sd">    **Parameters**</span>
+<span class="sd">    </span>
+<span class="sd">    inbudgetid \: int / str</span>
+<span class="sd">      The id of the budget to delete.</span>
+
+<span class="sd">    **Returns**</span>
+<span class="sd">    </span>
+<span class="sd">    dict{} \: delete budget dictionary </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">rval</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="s1">&#39;operator&#39;</span><span class="p">:</span> <span class="s1">&#39;REMOVE&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;operand&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;budgetId&#39;</span><span class="p">:</span> <span class="n">inbudgetid</span><span class="p">,</span>
+        <span class="p">},</span>
+      <span class="p">}</span>
+    
+    <span class="k">return</span> <span class="n">rval</span>
+
+
+  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Budget.listbudgets"><a class="viewcode-back" href="../../wad_Budget/sdoc.html#wad_Budget.models.Budget.listbudgets">[docs]</a>  <span class="k">def</span> <span class="nf">listbudgets</span> <span class="p">(</span> <span class="n">client</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of budgets as suds dictionary objects.</span>
+<span class="sd">    </span>
+<span class="sd">    Makes a call to the AdWords API using AWQL requesting BudgetId, </span>
+<span class="sd">    BudgetName, Amount, BudgetStatus WHERE BudgetStatus != &quot;REMOVED&quot;</span>
+<span class="sd">    </span>
+<span class="sd">    Note \: Does not affect the Django database.</span>
+<span class="sd">    </span>
+<span class="sd">    **Parameters**</span>
+<span class="sd">    </span>
+<span class="sd">    client \: googleads.adwords.AdWordsClient object</span>
+<span class="sd">      The client to request API service from.</span>
+
+<span class="sd">    **Returns**</span>
+<span class="sd">    </span>
+<span class="sd">    suds[] \: list of budgets as suds dictionary objects</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># request a service object from the client object</span>
+    <span class="n">service</span> <span class="o">=</span> <span class="n">Budget</span><span class="o">.</span><span class="n">serviceobj</span> <span class="p">(</span> <span class="n">client</span> <span class="p">)</span>
+    
+    <span class="n">querytext</span> <span class="o">=</span> <span class="n">Budget</span><span class="o">.</span><span class="n">querytext</span><span class="p">()</span>
+    
+    <span class="n">rslts</span> <span class="o">=</span> <span class="n">list_from_query</span> <span class="p">(</span> <span class="n">client</span><span class="p">,</span> <span class="n">service</span><span class="p">,</span> <span class="n">querytext</span> <span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">rslts</span></div>
+    
+  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">listbudgetsincluderemoved</span> <span class="p">(</span> <span class="n">client</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of ALL budgets as suds dictionary objects.</span>
+<span class="sd">    </span>
+<span class="sd">    Makes a call to the AdWords API using AWQL requesting BudgetId, </span>
+<span class="sd">    BudgetName, Amount, BudgetStatus </span>
+<span class="sd">    </span>
+<span class="sd">    Note \: Does not affect the Django database.</span>
+<span class="sd">    </span>
+<span class="sd">    **Parameters**</span>
+<span class="sd">    </span>
+<span class="sd">    client \: googleads.adwords.AdWordsClient object</span>
+<span class="sd">      The client to request API service from.</span>
+
+<span class="sd">    **Returns**</span>
+<span class="sd">    </span>
+<span class="sd">    suds[] \: list of budgets as suds dictionary objects</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># request a service object from the client object</span>
+    <span class="n">service</span> <span class="o">=</span> <span class="n">Budget</span><span class="o">.</span><span class="n">serviceobj</span> <span class="p">(</span> <span class="n">client</span> <span class="p">)</span>
+    
+    <span class="n">querytext</span> <span class="o">=</span> <span class="n">Budget</span><span class="o">.</span><span class="n">querytext_includeremoved</span><span class="p">()</span>
+    
+    <span class="n">rslts</span> <span class="o">=</span> <span class="n">list_from_query</span> <span class="p">(</span> <span class="n">client</span><span class="p">,</span> <span class="n">service</span><span class="p">,</span> <span class="n">querytext</span> <span class="p">)</span>
+        
+    <span class="k">return</span> <span class="n">rslts</span>
+
+
+  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Budget.addbudget"><a class="viewcode-back" href="../../wad_Budget/sdoc.html#wad_Budget.models.Budget.addbudget">[docs]</a>  <span class="k">def</span> <span class="nf">addbudget</span> <span class="p">(</span> <span class="n">client</span><span class="p">,</span> <span class="n">inbudgetname</span><span class="p">,</span> <span class="n">inbudgetamount</span><span class="p">,</span> 
+                  <span class="n">inbudgetdeliverymethod</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inbudgetstatus</span><span class="o">=</span><span class="kc">None</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add an AdWords budget entry.</span>
+<span class="sd">    </span>
+<span class="sd">    Attempts to add a budget from AdWords. </span>
+<span class="sd">    Does not check if the budget exists.</span>
+<span class="sd">    </span>
+<span class="sd">    Note \: Does not affect the Django database.</span>
+<span class="sd">    </span>
+<span class="sd">    **Parameters**</span>
+<span class="sd">    </span>
+<span class="sd">    client \: googleads.adwords.AdWordsClient object</span>
+<span class="sd">      The client to request API service from.</span>
+<span class="sd">    inbudgetname \: str</span>
+<span class="sd">      The budget name.</span>
+<span class="sd">    inbudgetamount \: int</span>
+<span class="sd">      The micro value amount. Amount in micros.</span>
+<span class="sd">    inbudgetdeliverymethod \: str</span>
+<span class="sd">      Enumerated str type, either STANDARD, ACCELERATED, TESTING</span>
+<span class="sd">    inbudgetstatus \: str</span>
+<span class="sd">      Enumerated str type, either REMOVED, PAUSED, ENABLED, TESTING</span>
+
+<span class="sd">    **Returns**</span>
+<span class="sd">    </span>
+<span class="sd">    int \: newly created budget id</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">rval</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># if the input delivery method is None, </span>
+    <span class="c1"># set it to BUDGET_DELIVERY_ACCELERATED</span>
+    <span class="k">if</span> <span class="n">inbudgetdeliverymethod</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">inbudgetdeliverymethod</span> <span class="o">=</span> <span class="n">Budget</span><span class="o">.</span><span class="n">BUDGET_DELIVERY_ACCELERATED</span>
+    
+    <span class="c1"># if the input state is None, set it to STATE_PAUSED</span>
+    <span class="k">if</span> <span class="n">inbudgetstatus</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">inbudgetstatus</span> <span class="o">=</span> <span class="n">Budget</span><span class="o">.</span><span class="n">STATE_PAUSED</span>
+    
+    <span class="c1"># request a service object from the client object</span>
+    <span class="n">service</span> <span class="o">=</span> <span class="n">Budget</span><span class="o">.</span><span class="n">serviceobj</span> <span class="p">(</span> <span class="n">client</span> <span class="p">)</span>
+    
+    <span class="c1"># create the mutate string</span>
+    <span class="n">mutatestring</span> <span class="o">=</span> <span class="n">Budget</span><span class="o">.</span><span class="n">adddict</span> <span class="p">(</span> <span class="n">inbudgetname</span><span class="p">,</span> <span class="n">inbudgetamount</span><span class="p">,</span> 
+                                    <span class="n">inbudgetdeliverymethod</span><span class="p">,</span> 
+                                    <span class="n">inbudgetstatus</span> <span class="p">)</span>
+    
+    
+    <span class="n">client</span><span class="o">.</span><span class="n">validate_only</span> <span class="o">=</span> <span class="kc">True</span> <span class="c1"># set this to true to test for errors</span>
+    <span class="n">success</span> <span class="o">=</span> <span class="kc">False</span> <span class="c1"># assume failure, change the value for success</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+      
+      <span class="c1"># call mutate</span>
+      <span class="n">rslts</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">mutate</span> <span class="p">(</span> <span class="p">[</span><span class="n">mutatestring</span><span class="p">]</span> <span class="p">)</span>
+      
+      <span class="c1"># if there is a partial failure or success,</span>
+      <span class="c1"># the var success will be set to true</span>
+      <span class="n">success</span> <span class="o">=</span> <span class="kc">True</span>
+      
+    <span class="k">except</span> <span class="n">suds</span><span class="o">.</span><span class="n">WebFault</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+      <span class="c1"># if there is an error print the error</span>
+      <span class="nb">print</span> <span class="p">(</span> <span class="s1">&#39;Add budget failed: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span> <span class="p">)</span>
+
+    <span class="c1"># if the mutate was successful set validate_only to False</span>
+    <span class="k">if</span> <span class="n">success</span><span class="p">:</span> 
+      
+      <span class="n">client</span><span class="o">.</span><span class="n">validate_only</span> <span class="o">=</span> <span class="kc">False</span>
+      
+      <span class="c1"># make the mutate call</span>
+      <span class="n">rslts</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">mutate</span> <span class="p">(</span> <span class="p">[</span><span class="n">mutatestring</span><span class="p">]</span> <span class="p">)</span>
+
+      <span class="n">rval</span> <span class="o">=</span> <span class="n">rslts</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;budgetId&#39;</span><span class="p">]</span>
+
+      <span class="c1"># print the results</span>
+      <span class="nb">print</span> <span class="p">(</span> <span class="s1">&#39;Budget </span><span class="si">%s</span><span class="s1"> added.&#39;</span> <span class="o">%</span> <span class="n">rslts</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;budgetId&#39;</span><span class="p">]</span> <span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">rval</span></div>
+  
+  
+  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Budget.removebudget"><a class="viewcode-back" href="../../wad_Budget/sdoc.html#wad_Budget.models.Budget.removebudget">[docs]</a>  <span class="k">def</span> <span class="nf">removebudget</span> <span class="p">(</span> <span class="n">client</span><span class="p">,</span> <span class="n">inbudgetid</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove an AdWords budget entry.</span>
+<span class="sd">    </span>
+<span class="sd">    Attempts to remove a budget from AdWords. Does not </span>
+<span class="sd">    check if the budget exists.</span>
+<span class="sd">    </span>
+<span class="sd">    Note \: Does not affect the Django database.</span>
+<span class="sd">    </span>
+<span class="sd">    **Parameters**</span>
+<span class="sd">    </span>
+<span class="sd">    client \: googleads.adwords.AdWordsClient object</span>
+<span class="sd">      The client to request API service from.</span>
+<span class="sd">    inbudgetid \: int </span>
+<span class="sd">      The id of the budget.</span>
+<span class="sd">    </span>
+
+<span class="sd">    **Returns**</span>
+<span class="sd">    </span>
+<span class="sd">    class \: { rremoved[], rmodified[], radded[] }</span>
+<span class="sd">      rremoved \: list of instances removed from Django</span>
+<span class="sd">      rmodified \: list of instances modified in Django</span>
+<span class="sd">      radded \: list of instances added to Django</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    
+    <span class="n">rlst</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="c1"># request a service object from the client object</span>
+    <span class="n">service</span> <span class="o">=</span> <span class="n">Budget</span><span class="o">.</span><span class="n">serviceobj</span> <span class="p">(</span> <span class="n">client</span> <span class="p">)</span>
+    
+    <span class="c1"># create the mutate string</span>
+    <span class="n">mutatestring</span> <span class="o">=</span> <span class="n">Budget</span><span class="o">.</span><span class="n">deldict</span> <span class="p">(</span> <span class="n">inbudgetid</span> <span class="p">)</span>
+    
+    <span class="n">client</span><span class="o">.</span><span class="n">validate_only</span> <span class="o">=</span> <span class="kc">True</span> <span class="c1"># set this to true to test for errors</span>
+    <span class="n">success</span> <span class="o">=</span> <span class="kc">False</span> <span class="c1"># assume failure, change the value for success</span>
+
+    <span class="k">try</span><span class="p">:</span>
+      
+      <span class="c1"># call mutate</span>
+      <span class="n">rslts</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">mutate</span> <span class="p">(</span> <span class="p">[</span><span class="n">mutatestring</span><span class="p">]</span> <span class="p">)</span>
+      
+      <span class="c1"># if there is a partial failure or success </span>
+      <span class="c1"># the var success will be set to true</span>
+      <span class="n">success</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">except</span> <span class="n">suds</span><span class="o">.</span><span class="n">WebFault</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+      <span class="c1"># if there is an error print the error</span>
+      <span class="nb">print</span> <span class="p">(</span> <span class="s1">&#39;Remove budget failed: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span> <span class="p">)</span>
+
+    <span class="c1"># if the mutate was successful set validate_only to False</span>
+    <span class="k">if</span> <span class="n">success</span><span class="p">:</span> 
+      
+      <span class="n">client</span><span class="o">.</span><span class="n">validate_only</span> <span class="o">=</span> <span class="kc">False</span>
+      
+      <span class="c1"># make the mutate call</span>
+      <span class="n">rslts</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">mutate</span> <span class="p">(</span> <span class="p">[</span><span class="n">mutatestring</span><span class="p">]</span> <span class="p">)</span>
+
+      <span class="c1"># print the results</span>
+      <span class="k">for</span> <span class="n">rslt</span> <span class="ow">in</span> <span class="n">rslts</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="p">(</span> <span class="s1">&#39;Budget </span><span class="si">%s</span><span class="s1"> removed.&#39;</span> <span class="o">%</span> <span class="n">rslt</span><span class="p">[</span><span class="s1">&#39;budgetId&#39;</span><span class="p">]</span> <span class="p">)</span>
+        <span class="n">rlst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rslt</span><span class="p">[</span><span class="s1">&#39;budgetId&#39;</span><span class="p">])</span>
+    
+    <span class="k">return</span> <span class="n">rlst</span></div>
+
+
+  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Budget.sync"><a class="viewcode-back" href="../../wad_Budget/sdoc.html#wad_Budget.models.Budget.sync">[docs]</a>  <span class="k">def</span> <span class="nf">sync</span> <span class="p">(</span> <span class="n">client</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Synchronize AdWords budgets with Django.</span>
+<span class="sd">    </span>
+<span class="sd">    Queries all budgets in AdWords and inserts, deletes or modifies</span>
+<span class="sd">    Django database entries corresponding to the AdWords entries.</span>
+<span class="sd">    </span>
+<span class="sd">    Note \: AdWords budgets with status &quot;REMOVED&quot; are not sychronized.</span>
+<span class="sd">    </span>
+<span class="sd">    **Parameters**</span>
+<span class="sd">    </span>
+<span class="sd">    client \: googleads.adwords.AdWordsClient object</span>
+<span class="sd">      The client to request API service from.</span>
+
+
+<span class="sd">    **Returns**</span>
+<span class="sd">    </span>
+<span class="sd">    class \: { rremoved[], rmodified[], radded[] }</span>
+<span class="sd">      rremoved \: list of instances removed from Django</span>
+<span class="sd">      rmodified \: list of instances modified in Django</span>
+<span class="sd">      radded \: list of instances added to Django</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">class</span> <span class="nc">rvalc</span> <span class="p">():</span>
+      <span class="n">rremoved</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">rmodified</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">radded</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">rval</span> <span class="o">=</span> <span class="n">rvalc</span><span class="p">()</span>
+
+    <span class="n">service</span> <span class="o">=</span> <span class="n">Budget</span><span class="o">.</span><span class="n">serviceobj</span><span class="p">(</span> <span class="n">client</span> <span class="p">)</span>
+    
+    <span class="n">query</span> <span class="o">=</span> <span class="n">Budget</span><span class="o">.</span><span class="n">querytext</span><span class="p">()</span>
+    
+    <span class="n">rslt</span> <span class="o">=</span> <span class="n">list_from_query</span> <span class="p">(</span> <span class="n">client</span><span class="p">,</span> <span class="n">service</span><span class="p">,</span> <span class="n">query</span> <span class="p">)</span>
+    
+    <span class="k">for</span> <span class="n">awbudgetobj</span> <span class="ow">in</span> <span class="n">rslt</span><span class="p">:</span>      
+      
+      <span class="c1"># if the budget has not been marked as &#39;REMOVED&#39;</span>
+      <span class="k">if</span> <span class="n">awbudgetobj</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;REMOVED&#39;</span><span class="p">:</span>
+      
+        <span class="k">try</span><span class="p">:</span>
+
+          <span class="c1">#</span>
+          <span class="c1"># Update existing Django values from AdWords account.</span>
+          <span class="c1">#</span>
+          <span class="c1"># budgetamount, budgetname, budgetstatus</span>
+
+          <span class="c1"># get current values from Django database</span>
+          <span class="n">obj</span> <span class="o">=</span> <span class="n">Budget</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span> <span class="p">(</span> 
+            <span class="n">budgetid</span> <span class="o">=</span> <span class="n">awbudgetobj</span><span class="p">[</span><span class="s1">&#39;budgetId&#39;</span><span class="p">]</span> <span class="p">)</span>
+          
+          <span class="n">updated</span> <span class="o">=</span> <span class="kc">False</span>
+          
+          <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">budgetstatus</span> <span class="o">!=</span> <span class="n">awbudgetobj</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]:</span>
+            <span class="nb">print</span> <span class="p">(</span> <span class="s1">&#39;Updated budget </span><span class="si">%s</span><span class="s1"> status in Django databse.&#39;</span> <span class="o">%</span> 
+                    <span class="n">obj</span><span class="o">.</span><span class="n">budgetid</span> <span class="p">)</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">budgetstatus</span> <span class="o">=</span> <span class="n">awbudgetobj</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span>
+            <span class="n">updated</span> <span class="o">=</span> <span class="kc">True</span>
+            
+          <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">budgetname</span> <span class="o">!=</span> <span class="n">awbudgetobj</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]:</span>
+            <span class="nb">print</span> <span class="p">(</span> <span class="s1">&#39;Updated budget </span><span class="si">%s</span><span class="s1"> name in Django databse.&#39;</span> <span class="o">%</span> 
+                     <span class="n">obj</span><span class="o">.</span><span class="n">budgetid</span> <span class="p">)</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">budgetname</span> <span class="o">=</span> <span class="n">awbudgetobj</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+            <span class="n">updated</span> <span class="o">=</span> <span class="kc">True</span>
+            
+          <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">budgetamount</span> <span class="o">!=</span> <span class="n">awbudgetobj</span><span class="p">[</span><span class="s1">&#39;amount&#39;</span><span class="p">][</span><span class="s1">&#39;microAmount&#39;</span><span class="p">]:</span>
+            
+            <span class="nb">print</span> <span class="p">(</span> 
+              <span class="s1">&#39;Updated budget </span><span class="si">%s</span><span class="s1"> budget amount in Django database.&#39;</span> <span class="o">%</span> 
+               <span class="n">obj</span><span class="o">.</span><span class="n">budgetid</span> <span class="p">)</span>
+            
+            <span class="n">obj</span><span class="o">.</span><span class="n">budgetamount</span> <span class="o">=</span> <span class="n">awbudgetobj</span><span class="p">[</span><span class="s1">&#39;amount&#39;</span><span class="p">][</span><span class="s1">&#39;microAmount&#39;</span><span class="p">]</span>
+            <span class="n">updated</span> <span class="o">=</span> <span class="kc">True</span>
+            
+          <span class="k">if</span> <span class="n">updated</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+            <span class="n">rval</span><span class="o">.</span><span class="n">rmodified</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        
+        <span class="k">except</span> <span class="n">ObjectDoesNotExist</span><span class="p">:</span>
+
+          <span class="c1">#</span>
+          <span class="c1"># Add new Django values from AdWords account.</span>
+          <span class="c1">#</span>
+          
+          <span class="n">newbudget</span> <span class="o">=</span> <span class="n">Budget</span><span class="p">(</span>
+            <span class="n">budgetid</span> <span class="o">=</span> <span class="n">awbudgetobj</span><span class="p">[</span><span class="s1">&#39;budgetId&#39;</span><span class="p">],</span>
+            <span class="n">budgetstatus</span> <span class="o">=</span> <span class="n">awbudgetobj</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">],</span>
+            <span class="n">budgetname</span> <span class="o">=</span> <span class="n">awbudgetobj</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">],</span>
+            <span class="n">budgetamount</span> <span class="o">=</span> <span class="n">awbudgetobj</span><span class="p">[</span><span class="s1">&#39;amount&#39;</span><span class="p">][</span><span class="s1">&#39;microAmount&#39;</span><span class="p">],</span>
+            <span class="p">)</span>
+          
+          <span class="n">newbudget</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+          <span class="nb">print</span> <span class="p">(</span> <span class="s1">&#39;Added budget </span><span class="si">%s</span><span class="s1"> to Django database.&#39;</span> <span class="o">%</span> 
+                  <span class="n">newbudget</span><span class="o">.</span><span class="n">budgetid</span> <span class="p">)</span>
+        
+          <span class="n">rval</span><span class="o">.</span><span class="n">radded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">newbudget</span><span class="p">)</span>
+    
+    <span class="c1">#</span>
+    <span class="c1"># Remove old Django values according to AdWords account.</span>
+    <span class="c1"># remove any old campaigns from Django db that don&#39;t exist in </span>
+    <span class="c1"># adwords anymore</span>
+    <span class="c1">#</span>
+    
+    <span class="c1"># make a list of awcampaignobj ids</span>
+    <span class="n">awbudgetobjids</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">awbudgetobj</span> <span class="ow">in</span> <span class="n">rslt</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">awbudgetobj</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;REMOVED&#39;</span><span class="p">:</span>
+        <span class="n">awbudgetobjids</span><span class="o">.</span><span class="n">append</span> <span class="p">(</span> <span class="n">awbudgetobj</span><span class="p">[</span><span class="s1">&#39;budgetId&#39;</span><span class="p">]</span> <span class="p">)</span>
+      
+    <span class="c1"># iterate Django db entries and check if the entry exists </span>
+    <span class="c1"># in adwords, remove the entry if it doesn&#39;t exist</span>
+    <span class="k">for</span> <span class="n">dbbudgetobj</span> <span class="ow">in</span> <span class="n">Budget</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span> <span class="p">(</span> <span class="p">):</span>
+      <span class="k">if</span> <span class="n">dbbudgetobj</span><span class="o">.</span><span class="n">budgetid</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">awbudgetobjids</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="p">(</span> <span class="s1">&#39;Deleted budget </span><span class="si">%s</span><span class="s1"> from Django database.&#39;</span> <span class="o">%</span> 
+                <span class="n">dbbudgetobj</span><span class="o">.</span><span class="n">budgetid</span> <span class="p">)</span>
+        <span class="n">dbbudgetobj</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="n">rval</span><span class="o">.</span><span class="n">rremoved</span><span class="o">.</span><span class="n">append</span> <span class="p">(</span> <span class="n">dbbudgetobj</span> <span class="p">)</span>
+        
+        
+    <span class="k">return</span> <span class="n">rval</span></div></div>
+        
+      
+
+
+
+
+
+
+
+
+  
+  
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Brandon C Tardio.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.8</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
