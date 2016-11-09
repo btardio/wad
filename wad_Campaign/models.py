@@ -1,5 +1,5 @@
 from django.db import models
-from wad.query import list_from_query
+from wad_Common.query import list_from_query
 from django.core.exceptions import ObjectDoesNotExist
 from wad_Budget.models import Budget
 
