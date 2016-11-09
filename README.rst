@@ -13,11 +13,18 @@ Sphinx is a program that generates HTML documentation from reStructuredText. Sph
 Install
 -------
 
-1. git clone http://github.com/btardio/wad/dist/django-wad-0.0.1.tar.gz
+1. git clone http://github.com/btardio/wad
+
+2. pip install wad/dist/django-wad-0.0.1.tar.gz
+
+OR
+
+1. wget https://github.com/btardio/wad/raw/master/dist/django-wad-0.0.1.tar.gz
 
 2. pip install django-wad-0.0.1.tar.gz
 
-This install files in your site-packages directory, a new directory is created for each wad module. ie: wad_Campaign, wad_Budget
+
+This installs files in your site-packages directory, a new directory is created for each wad module. ie: wad_Campaign, wad_Budget
 
 Quick Start
 -----------
