@@ -3,7 +3,7 @@ import suds
 from googleads import adwords
 from wad_Common.query import list_from_query
 from django.core.exceptions import ObjectDoesNotExist
-
+import pickle
 
 class Budget ( models.Model ):
   """The Budget class stores budgetid, budgetname, budgetamount and 
@@ -34,24 +34,28 @@ class Budget ( models.Model ):
   
   # selector: BudgetName
   budgetname = models.CharField(max_length=255, 
-                                help_text='Budget name')
+                                help_text='Budget name',
+                                unique=True)
   
-  budgetamount = models.BigIntegerField() # selector: Amount
+  budgetamount = models.BigIntegerField(default=20000000) # selector: Amount
   
   # budget delivery method is not a part of Budget, and is not 
   # queryable from budget service
   # selector: DeliveryMethod
-  budgetdeliverymethod = models.CharField(
-                          max_length=20, 
-                          choices=BUDGET_DELIVERY_CHOICES)
-  
+  budgetdeliverymethod = models.CharField(max_length=20, 
+                                          choices=BUDGET_DELIVERY_CHOICES,
+                                          default=BUDGET_DELIVERY_ACCELERATED)
+                                          
   # selector: BudgetStatus
   budgetstatus = models.CharField(max_length=20, 
-                                  choices=STATE_CHOICES) 
+                                  choices=STATE_CHOICES,
+                                  default=STATE_ENABLED) 
   
   internalbudgetrefreshdate = models.DateTimeField(auto_now_add=True)
   
   internalbudgetcreationdate = models.DateTimeField(auto_now_add=True)
+  
+  internalbooleansync = models.BooleanField(default=False)
   
   #
   # Returns the service obj
@@ -126,7 +130,20 @@ class Budget ( models.Model ):
     return 'SELECT BudgetId, BudgetName, Amount, BudgetStatus'
 
 
+  def asdict(self):
 
+    rval = {
+        'budgetId': self.budgetid,
+        'name': self.budgetname,
+        'amount': {
+          'microAmount': self.budgetamount,
+          },
+        'deliveryMethod': self.budgetdeliverymethod,
+        'status': self.budgetstatus,
+        }
+
+    return rval
+  
   #
   # Returns the dictionary needed to add a budget
   #
@@ -137,7 +154,7 @@ class Budget ( models.Model ):
     Return a dictionary object for adding a budget to the AdWords API.
     
     Uses operator ADD and OPERAND name, amount, deliverymethod, 
-    status - constructs an AdWords/suds compatable dictionary
+    status - constructs an AdWords/suds compatible dictionary
     
     Note \: Does not affect the Django database.
     
@@ -157,10 +174,47 @@ class Budget ( models.Model ):
     dict{} \: add budget dictionary 
     """
 
+    # if the input delivery method is None, 
+    # set it to BUDGET_DELIVERY_ACCELERATED
+    if inbudgetdeliverymethod == None:
+      inbudgetdeliverymethod = Budget.BUDGET_DELIVERY_ACCELERATED
+    
+    # if the input state is None, set it to STATE_PAUSED
+    if inbudgetstatus == None:
+      inbudgetstatus = Budget.STATE_PAUSED
+      
+    # if the budget amount is None, set a starting budget amount
+    if inbudgetamount == None:
+      inbudgetamount = 2000000000
+
     
     rval = {
       'operator': 'ADD',
       'operand': {
+        'name': inbudgetname,
+        'amount': {
+          'microAmount': inbudgetamount,
+          },
+        'deliveryMethod': inbudgetdeliverymethod,
+        'status': inbudgetstatus,
+        }
+      }
+
+    return rval
+    
+    
+    
+  #
+  # Returns the dictionary needed to modify a budget
+  #
+  @staticmethod
+  def modifydict (inbudgetid, inbudgetname, inbudgetamount, 
+                  inbudgetdeliverymethod, inbudgetstatus ):
+    
+    rval = {
+      'operator': 'SET',
+      'operand': {
+        'budgetId': inbudgetid,
         'name': inbudgetname,
         'amount': {
           'microAmount': inbudgetamount,
@@ -182,7 +236,7 @@ class Budget ( models.Model ):
     AdWords API.
     
     Using operator REMOVE and OPERAND inbudgetid, constructs 
-    an AdWords/suds compatable dictionary
+    an AdWords/suds compatible dictionary
     
     Note \: Does not affect the Django database.
     
@@ -205,6 +259,7 @@ class Budget ( models.Model ):
     
     return rval
 
+    
 
   @staticmethod
   def listbudgets ( client ):
@@ -266,16 +321,14 @@ class Budget ( models.Model ):
 
 
   @staticmethod
-  def addbudget ( client, inbudgetname, inbudgetamount, 
-                  inbudgetdeliverymethod=None, inbudgetstatus=None ):
+  def _aw_addbudget ( client, inbudgetname, inbudgetamount=None, 
+                      inbudgetdeliverymethod=None, inbudgetstatus=None ):
     """
     Add an AdWords budget entry.
     
-    Attempts to add a budget from AdWords. 
+    Attempts to add a budget to AdWords. 
     Does not check if the budget exists.
-    
-    Note \: Does not affect the Django database.
-    
+        
     **Parameters**
     
     client \: googleads.adwords.AdWordsClient object
@@ -291,20 +344,14 @@ class Budget ( models.Model ):
 
     **Returns**
     
-    int \: newly created budget id
-
+    suds.sudsobject.Budget \: newly created suds Budget instance
+    or
+    suds.WebFault \: error message
+    
     """
 
     rval = None
-
-    # if the input delivery method is None, 
-    # set it to BUDGET_DELIVERY_ACCELERATED
-    if inbudgetdeliverymethod == None:
-      inbudgetdeliverymethod = Budget.BUDGET_DELIVERY_ACCELERATED
-    
-    # if the input state is None, set it to STATE_PAUSED
-    if inbudgetstatus == None:
-      inbudgetstatus = Budget.STATE_PAUSED
+    newbudget = None
     
     # request a service object from the client object
     service = Budget.serviceobj ( client )
@@ -330,6 +377,7 @@ class Budget ( models.Model ):
     except suds.WebFault as e:
       # if there is an error print the error
       print ( 'Add budget failed: %s' % e )
+      return e
 
     # if the mutate was successful set validate_only to False
     if success: 
@@ -338,24 +386,95 @@ class Budget ( models.Model ):
       
       # make the mutate call
       rslts = service.mutate ( [mutatestring] )
-
-      rval = rslts['value'][0]['budgetId']
+         
+      rval = rslts['value'][0]
 
       # print the results
-      print ( 'Budget %s added.' % rslts['value'][0]['budgetId'] )
+      print ( 'Budget %s %s added to AdWords.' % (rval['budgetId'],
+                                                  rval['name']) )
     
     return rval
+
+
+  @staticmethod
+  def addbudget ( client, inbudgetname, inbudgetamount=None, inbudgetdeliverymethod=None, inbudgetstatus=None ):
+    """
+    Add an AdWords budget entry.
+    
+    Attempts to add a budget to AdWords. 
+    Does not check if the budget exists.
+    If it is successful adding the budget
+    to Ad Words, it also adds a budget to 
+    Django DB.
+        
+    **Parameters**
+    
+    client \: googleads.adwords.AdWordsClient object
+      The client to request API service from.
+    inbudgetname \: str
+      The budget name.
+    inbudgetamount \: int
+      The micro value amount. Amount in micros.
+    inbudgetdeliverymethod \: str
+      Enumerated str type, either STANDARD, ACCELERATED, TESTING
+    inbudgetstatus \: str
+      Enumerated str type, either REMOVED, PAUSED, ENABLED, TESTING
+
+    **Returns**
+    
+    wad_Budget.Budget \: newly created Budget instance
+
+    """
+
+    # Add new Django database entry for the newly added AdWords budget
+    # add it here because init checks adwords to see if it's possible to
+    # enter this item, adwords does not let you ad an item that has same
+    # name as their db
+    newbudget = Budget(
+      budgetid = None,
+      budgetdeliverymethod = inbudgetdeliverymethod,
+      budgetstatus = inbudgetstatus,
+      budgetname = inbudgetname,
+      budgetamount = inbudgetamount,
+      )
+    
+    addbudgetobj = Budget._aw_addbudget ( client, inbudgetname, inbudgetamount, 
+                                          inbudgetdeliverymethod, inbudgetstatus )
+    
+    if addbudgetobj != None:
+
+      #print ( newbudget.budgetamount )
+      #print ( newbudget.budgetdeliverymethod )
+      #print ( newbudget.budgetstatus )
+      #print ( newbudget.budgetid )
+
+      # the unsaved db object needs updated after _aw_addbudget if method paramaters were none
+      newbudget.budgetdeliverymethod = addbudgetobj['deliveryMethod']
+      newbudget.budgetstatus = addbudgetobj['status']
+      newbudget.budgetid = addbudgetobj['budgetId']
+      newbudget.budgetamount = addbudgetobj['amount']['microAmount']
+
+      
+      # finally we are ready to save the database instance
+      newbudget.save( sync_aw=False )
+    
+      print ( 'Budget %s %s added to Django.' % (addbudgetobj['budgetId'],
+                                                 addbudgetobj['name']) )
+
+    else:
+      
+      print ( 'Failed to add Budget ( budgetname="%s" ... )' % inbudgetname )
+      
+    return newbudget
   
   
   @staticmethod
-  def removebudget ( client, inbudgetid ):
+  def _aw_removebudget ( client, inbudgetid ):
     """
     Remove an AdWords budget entry.
     
     Attempts to remove a budget from AdWords. Does not 
     check if the budget exists.
-    
-    Note \: Does not affect the Django database.
     
     **Parameters**
     
@@ -367,15 +486,12 @@ class Budget ( models.Model ):
 
     **Returns**
     
-    class \: { rremoved[], rmodified[], radded[] }
-      rremoved \: list of instances removed from Django
-      rmodified \: list of instances modified in Django
-      radded \: list of instances added to Django
+    wad_Budget.Budget \: Returns the deleted Budget instance
+    or
+    suds.WebFault \: error message
+    
     """
 
-    
-    rlst = []
-    
     # request a service object from the client object
     service = Budget.serviceobj ( client )
     
@@ -384,6 +500,8 @@ class Budget ( models.Model ):
     
     client.validate_only = True # set this to true to test for errors
     success = False # assume failure, change the value for success
+
+    rslts = ''
 
     try:
       
@@ -397,6 +515,7 @@ class Budget ( models.Model ):
     except suds.WebFault as e:
       # if there is an error print the error
       print ( 'Remove budget failed: %s' % e )
+      return e
 
     # if the mutate was successful set validate_only to False
     if success: 
@@ -407,11 +526,54 @@ class Budget ( models.Model ):
       rslts = service.mutate ( [mutatestring] )
 
       # print the results
-      for rslt in rslts.value:
-        print ( 'Budget %s removed.' % rslt['budgetId'] )
-        rlst.append(rslt['budgetId'])
+      print ( 'Budget %s %s removed from AdWords.' % (rslts['value'][0]['budgetId'],
+                                                      rslts['value'][0]['name']) )
+      
+    return rslts
+  
+  
+  @staticmethod
+  def removebudget ( client, inbudgetid ):
+    """
+    Remove an AdWords budget entry.
     
-    return rlst
+    Attempts to remove a budget from AdWords. Does not 
+    check if the budget exists. If it is successful it
+    also tries to remove the budget from Django.
+    
+    **Parameters**
+    
+    client \: googleads.adwords.AdWordsClient object
+      The client to request API service from.
+    inbudgetid \: int 
+      The id of the budget.
+    
+
+    **Returns**
+    
+    wad_Budget.Budget \: Returns the deleted Budget instance
+    
+    """
+
+    djangobudget = None
+    
+    rslts = Budget._aw_removebudget ( client, inbudgetid )
+    
+    if 'value' in rslts:
+       
+      # Delete Django database entry if it exists for the deleted AdWords budget
+      try:
+        djangobudget = Budget.objects.get(budgetid = rslts['value'][0]['budgetId'])
+      except ObjectDoesNotExist:
+        print ( 'Tried to remove budget %s %s but it did not exist in Django.' % (rslts['value'][0]['budgetId'],
+                                                       rslts['value'][0]['name'] ) )
+      
+      if djangobudget != None: 
+        djangobudget.delete()
+        print ( 'Budget %s %s removed from Django.' % (rslts['value'][0]['budgetId'],
+                                                       rslts['value'][0]['name'] ) )
+            
+    return djangobudget
 
 
   @staticmethod
@@ -469,29 +631,39 @@ class Budget ( models.Model ):
           
           updated = False
           
-          if obj.budgetstatus != awbudgetobj['status']:
-            print ( 'Updated budget %s status in Django databse.' % 
-                    obj.budgetid )
-            obj.budgetstatus = awbudgetobj['status']
-            updated = True
-            
+          # todo: update delivery method
+          
           if obj.budgetname != awbudgetobj['name']:
-            print ( 'Updated budget %s name in Django databse.' % 
-                     obj.budgetid )
+
             obj.budgetname = awbudgetobj['name']
-            updated = True
+
+            print ( 'Updated budget %s %s name in Django databse.' % 
+                     ( obj.budgetid, obj.budgetname ) )
+
+            updated = True          
+          
+          if obj.budgetstatus != awbudgetobj['status']:
             
+            obj.budgetstatus = awbudgetobj['status']
+            
+            print ( 'Updated budget %s %s status in Django databse.' % 
+                    ( obj.budgetid, obj.budgetname ) )
+            
+            updated = True
+                        
           if obj.budgetamount != awbudgetobj['amount']['microAmount']:
             
-            print ( 
-              'Updated budget %s budget amount in Django database.' % 
-               obj.budgetid )
-            
             obj.budgetamount = awbudgetobj['amount']['microAmount']
+            
+            print ( 
+              'Updated budget %s %s budget amount in Django database.' % 
+               (obj.budgetid, obj.budgetamount ) )
+            
+
             updated = True
             
           if updated == True:
-            obj.save()
+            obj.save( sync_aw=False )
             rval.rmodified.append(obj)
         
         except ObjectDoesNotExist:
@@ -507,9 +679,9 @@ class Budget ( models.Model ):
             budgetamount = awbudgetobj['amount']['microAmount'],
             )
           
-          newbudget.save()
-          print ( 'Added budget %s to Django database.' % 
-                  newbudget.budgetid )
+          newbudget.save( sync_aw=False )
+          print ( 'Added budget %s %s to Django database.' % 
+                  ( newbudget.budgetid, newbudget.budgetname ) )
         
           rval.radded.append(newbudget)
     
@@ -529,8 +701,8 @@ class Budget ( models.Model ):
     # in adwords, remove the entry if it doesn't exist
     for dbbudgetobj in Budget.objects.all ( ):
       if dbbudgetobj.budgetid not in awbudgetobjids:
-        print ( 'Deleted budget %s from Django database.' % 
-                dbbudgetobj.budgetid )
+        print ( 'Deleted budget %s %s from Django database.' % 
+                ( dbbudgetobj.budgetid, dbbudgetobj.budgetname ) )
         dbbudgetobj.delete()
         rval.rremoved.append ( dbbudgetobj )
         
@@ -538,10 +710,48 @@ class Budget ( models.Model ):
     return rval
         
       
+      
+  def save(self, *args, **kwargs):
+    
+    if 'sync_aw' in kwargs:
+      self.sync_aw = kwargs['sync_aw']
+      kwargs.pop('sync_aw')
+    else:
+      self.sync_aw = True
+    
+    super(Budget, self).save(*args, **kwargs)
+      
+
+  #def save(self, *args, **kwargs):
+    
+    #aw_budget = None
+    
+    ## before you save the instance, check that the instance has a budgetid
+    #if ( self.budgetid == None ):
+      
+      ## load the client from storage
+      #client = adwords.AdWordsClient.LoadFromStorage()
+      
+      #aw_budget = Budget._aw_addbudget ( client, self.budgetname, self.budgetamount,
+                                  #self.budgetdeliverymethod, self.budgetstatus )
+      
+      #self.budgetid = aw_budget['budgetId']
+    
+    #super(Budget, self).save(*args, **kwargs)
+    
+    #return
+    
 
 
 
 
+
+
+
+
+
+
+      
 
 
 

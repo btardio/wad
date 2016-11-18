@@ -1,0 +1,1 @@
+default_app_config = 'wad_Budget.apps.wad_BudgetConfig'
