@@ -34,6 +34,11 @@ class Command ( BaseCommand ):
     for budget in budgets:
       mutatestring_dellst.append ( Budget.deldict ( budget['budgetId'] ) )
     
+    # if there are no budgets in aw with status != remove, return
+    if ( len ( mutatestring_dellst ) == 0 ):
+      print ( 'Nothing to delete.' )
+      return
+    
     # call mutate for the list of deletes
     rslts = service.mutate ( mutatestring_dellst )
     
@@ -55,12 +60,13 @@ class Command ( BaseCommand ):
                                        budgetsuccess['name'],
                                        budgetsuccess['status'] ) )
     
-    # prints each budget that threw an error
-    print ( 'Failed to remove: ' )
-    for budgeterror in rslts['partialFailureErrors']:
-      print ( '%s %s Reason: %s' % ( budgets[ int ( budgeterror['fieldPath'][11:12] ) ]['budgetId'],
-                          budgets[ int ( budgeterror['fieldPath'][11:12] ) ]['name'],
-                          budgeterror['errorString'] ) )
+    if 'partialFailureErrors' in rslts:
+      # prints each budget that threw an error
+      print ( 'Failed to remove: ' )
+      for budgeterror in rslts['partialFailureErrors']:
+        print ( '%s %s Reason: %s' % ( budgets[ int ( budgeterror['fieldPath'][11:12] ) ]['budgetId'],
+                            budgets[ int ( budgeterror['fieldPath'][11:12] ) ]['name'],
+                            budgeterror['errorString'] ) )
      
             
     

@@ -67,3 +67,11 @@ python manage.py test wad_Budget
 
 python manage.py test wad_Campaign
 
+
+Developers / Contributors
+-------------------------
+
+To make contributions to this codebase clone the repository and create a new project, adding the applications to the installed path.
+Change your PYTHONPATH to include the cloned directory. To migrate use python manage.py makemigrations wad_Budget, or the app of
+your choosing. Migrations will be made to the clone directory and not the new project.
+

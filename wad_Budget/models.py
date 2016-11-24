@@ -87,9 +87,66 @@ class Budget ( models.Model ):
   # Returns the query text for querying adwords api
   #
   @staticmethod
-  def querytext():
+  def querytext( budgetid = None ):
     """
     Returns the query text for querying adwords api
+    
+    Ignores budgets with REMOVED status
+        
+    Note \: Does not affect the Django database.
+    
+    **Parameters**
+    
+    budgetid \: str 
+      Optional budgetid for querying a single budget
+      
+    **Returns**
+    
+    str \: the AWQL query string
+    """
+    rval = ''
+    
+    if budgetid == None:    
+      rval = 'SELECT BudgetId, BudgetName, Amount, BudgetStatus'
+      rval += ' WHERE BudgetStatus != "REMOVED"'
+    else:
+      rval = 'SELECT BudgetId, BudgetName, Amount, BudgetStatus'
+      rval += ' WHERE BudgetStatus != "REMOVED" AND BudgetId = "%s"' % budgetid
+    
+    return rval
+
+  #
+  # Returns the query text for querying refcount from adwords api
+  #
+  @staticmethod
+  def querytextref():
+    """
+    Returns the query text for querying adwords api refcount
+    
+    Ignores budgets with REMOVED status
+    
+    **Parameters**
+    
+    None
+    
+    **Returns**
+    
+    str \: the AWQL query string
+    """
+    
+    rval = 'SELECT BudgetId, BudgetReferenceCount'
+    rval += ' WHERE BudgetStatus != "REMOVED"'
+    
+    return rval
+
+  #
+  # Returns the query text for querying adwords api
+  #
+  @staticmethod
+  def querytextid( inbudgetid ):
+    """
+    Returns the query text for querying adwords api for a budget
+    specified by inbudgetid
     
     Ignores budgets with REMOVED status
         
@@ -104,7 +161,7 @@ class Budget ( models.Model ):
     str \: the AWQL query string
     """
     rval = 'SELECT BudgetId, BudgetName, Amount, BudgetStatus'
-    rval += ' WHERE BudgetStatus != "REMOVED"'
+    rval += ' WHERE BudgetId = "%s"' % inbudgetid
     
     return rval
 
@@ -131,7 +188,22 @@ class Budget ( models.Model ):
 
 
   def asdict(self):
-
+    """
+    Return a dictionary object of the wad_Budget.Budget object
+    as it would appear in a Google AdWords query. Constructs an 
+    AdWords/suds compatible dictionary.
+    
+    **Parameters**
+    
+    None 
+    
+    **Returns**
+    
+    dict{} \: the dictionary representation of the wad_Budget.Budget 
+    object.
+    """
+    
+    
     rval = {
         'budgetId': self.budgetid,
         'name': self.budgetname,
@@ -148,8 +220,7 @@ class Budget ( models.Model ):
   # Returns the dictionary needed to add a budget
   #
   @staticmethod
-  def adddict(inbudgetname, inbudgetamount, 
-              inbudgetdeliverymethod, inbudgetstatus):
+  def adddict(inbudgetname, inbudgetamount, inbudgetdeliverymethod, inbudgetstatus):
     """
     Return a dictionary object for adding a budget to the AdWords API.
     
@@ -208,8 +279,34 @@ class Budget ( models.Model ):
   # Returns the dictionary needed to modify a budget
   #
   @staticmethod
-  def modifydict (inbudgetid, inbudgetname, inbudgetamount, 
-                  inbudgetdeliverymethod, inbudgetstatus ):
+  def modifydict (inbudgetid, inbudgetname, inbudgetamount, inbudgetdeliverymethod, inbudgetstatus ):
+    """
+    Return a dictionary object for modifying a budget in the 
+    AdWords API. 
+    
+    Using operator SET and OPERAND budgetId, name, amount, 
+    deliveryMethod and status, constructs an AdWords/suds 
+    compatible dictionary. 
+    
+    Note \: Does not affect the Django database. 
+    
+    **Parameters** 
+
+    inbudgetid \: int / str
+      The id of the budget to modify.
+    inbudgetname \: str
+      The name of the budget
+    inbudgetamount \: int / str
+      The budget amount in mirco units.
+    inbudgetdeliverymethod \: str
+      The delivery method, either STANDARD, ACCELERATED, TESTING
+    inbudgetstatus \: str
+      The budget status, either ENABLED, PAUSED, REMOVED, TESTING
+      
+    **Returns**
+    
+    dict{} \: modify budget dictionary
+    """
     
     rval = {
       'operator': 'SET',
@@ -259,7 +356,30 @@ class Budget ( models.Model ):
     
     return rval
 
+  @staticmethod
+  def getbudget ( client, inbudgetid ):
+    """
+    Returns the suds object dict representing the budget specified by
+    inbudgetid.
     
+    **Parameters**
+    
+    client \: googleads.adwords.AdWordsClient object
+      The client to request API service from.
+      
+    **Returns**
+    
+    suds{} \: budget as suds dictionary object
+    """
+    
+    # request a service object from the client object
+    service = Budget.serviceobj ( client )
+    
+    querytext = Budget.querytextid ( inbudgetid )
+    
+    rslts = list_from_query ( client, service, querytext )
+    
+    return rslts[0]
 
   @staticmethod
   def listbudgets ( client ):
@@ -321,14 +441,15 @@ class Budget ( models.Model ):
 
 
   @staticmethod
-  def _aw_addbudget ( client, inbudgetname, inbudgetamount=None, 
-                      inbudgetdeliverymethod=None, inbudgetstatus=None ):
+  def _aw_addbudget ( client, inbudgetname, inbudgetamount=None, inbudgetdeliverymethod=None, inbudgetstatus=None ):
     """
     Add an AdWords budget entry.
     
     Attempts to add a budget to AdWords. 
     Does not check if the budget exists.
-        
+    
+    Note \: Does not affect the Django database.
+    
     **Parameters**
     
     client \: googleads.adwords.AdWordsClient object
@@ -486,7 +607,8 @@ class Budget ( models.Model ):
 
     **Returns**
     
-    wad_Budget.Budget \: Returns the deleted Budget instance
+    <class 'suds.sudsobject.BudgetReturnValue'> \: Returns the 
+    results of the delete operation / the deleted Budget object
     or
     suds.WebFault \: error message
     
@@ -569,7 +691,7 @@ class Budget ( models.Model ):
                                                        rslts['value'][0]['name'] ) )
       
       if djangobudget != None: 
-        djangobudget.delete()
+        djangobudget.delete(sync_aw=False)
         print ( 'Budget %s %s removed from Django.' % (rslts['value'][0]['budgetId'],
                                                        rslts['value'][0]['name'] ) )
             
@@ -577,7 +699,100 @@ class Budget ( models.Model ):
 
 
   @staticmethod
-  def sync ( client ):
+  def _aw_removenorefbudgets ( client ):
+    """
+    Removes budgets with 0 reference count. This happens to budgets
+    after their associated campaign is removed.
+    
+    Queries AW API for list of budgets with 0 refcount and deletes
+    all occurences of them.
+    
+    **Parameters**
+    
+    client \: googleads.adwords.AdWordsClient object
+      The client to request API service from.
+      
+    **Returns**
+    
+    suds.sudsobject.Budget[] \: list of removed budgets
+    
+    """
+
+    # request a service object from the client object
+    service = Budget.serviceobj ( client )
+
+    querystring = Budget.querytextref ( )
+    
+    rslts = list_from_query ( client, service, querystring )
+    
+    dellst = []
+    
+    rval = []
+    
+    for item in rslts:
+      if item['referenceCount'] == 0:
+        dellst.append ( Budget.deldict ( item['budgetId'] ) )
+        
+    if ( len ( dellst ) != 0 ):   
+      # call mutate for the list of deletes
+      rval = service.mutate ( dellst )['value']
+      
+    else:
+      rval = []
+
+    return rval
+
+
+  @staticmethod
+  def removenorefbudgets ( client ):
+    """
+    Removes budgets with 0 reference count. This happens to budgets
+    after their associated campaign is removed. If there are budgets
+    with 0 reference count, this method also removes them from Django.
+    
+    Queries AW API for list of budgets with 0 refcount and deletes
+    all occurences of them. Also removes Django DB entries for 0
+    refcount budgets.
+    
+    **Parameters**
+    
+    client \: googleads.adwords.AdWordsClient object
+      The client to request API service from.
+      
+    **Returns**
+    
+    wad_Budget.models.Budget[] \: list of removed budgets
+    
+    """
+
+    
+    djangobudgets = []
+    
+    
+    rslts = Budget._aw_removenorefbudgets ( client )
+    
+    for rslt in rslts:
+      
+      djangobudget = None
+      
+      # Delete Django database entry if it exists for the deleted AdWords budget
+      try:
+        djangobudget = Budget.objects.get(budgetid = rslt['budgetId'])
+      except ObjectDoesNotExist:
+        print ( 'Tried to remove budget %s %s but it did not exist in Django.' % (rslt['budgetId'],
+                                                       rslt['name'] ) )
+      
+      if djangobudget != None: 
+        djangobudget.delete(sync_aw=False)
+        print ( 'Budget %s %s removed from Django.' % (rslt['budgetId'],
+                                                       rslt['name'] ) )
+        djangobudgets.append ( djangobudget )
+    
+    return djangobudgets
+
+
+  @staticmethod
+  def sync ( client, budgetid = None ):
     """
     Synchronize AdWords budgets with Django.
     
@@ -591,6 +806,8 @@ class Budget ( models.Model ):
     client \: googleads.adwords.AdWordsClient object
       The client to request API service from.
 
+    budgetid \: str
+      Optional budgetid to sync a single budget
 
     **Returns**
     
@@ -609,7 +826,7 @@ class Budget ( models.Model ):
 
     service = Budget.serviceobj( client )
     
-    query = Budget.querytext()
+    query = Budget.querytext( budgetid )
     
     rslt = list_from_query ( client, service, query )
     
@@ -701,9 +918,9 @@ class Budget ( models.Model ):
     # in adwords, remove the entry if it doesn't exist
     for dbbudgetobj in Budget.objects.all ( ):
       if dbbudgetobj.budgetid not in awbudgetobjids:
+        dbbudgetobj.delete()
         print ( 'Deleted budget %s %s from Django database.' % 
                 ( dbbudgetobj.budgetid, dbbudgetobj.budgetname ) )
-        dbbudgetobj.delete()
         rval.rremoved.append ( dbbudgetobj )
         
         
@@ -713,6 +930,8 @@ class Budget ( models.Model ):
       
   def save(self, *args, **kwargs):
     
+    # if snyc_aw is in the arguments for save, assign it to a member
+    # variable of self for pre_save and pop it
     if 'sync_aw' in kwargs:
       self.sync_aw = kwargs['sync_aw']
       kwargs.pop('sync_aw')
@@ -721,6 +940,20 @@ class Budget ( models.Model ):
     
     super(Budget, self).save(*args, **kwargs)
       
+
+  def delete(self, *args, **kwargs):
+    
+    # if snyc_aw is in the arguments for save, assign it to a member
+    # variable of self for pre_save and pop it
+    if 'sync_aw' in kwargs:
+      self.sync_aw = kwargs['sync_aw']
+      kwargs.pop('sync_aw')
+    else:
+      self.sync_aw = True
+    
+    super(Budget, self).delete(*args, **kwargs)
+
+
 
   #def save(self, *args, **kwargs):
     

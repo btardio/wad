@@ -8,10 +8,10 @@ import suds
 # Create your tests here.
 
 # remove all
-excludeset = ['t000', 't001', 't002', 't003', 't004', 't005', 't006', 't007']
+excludeset = ['t000', 't001', 't002', 't003', 't004', 't005', 't006', 't007', 't008', 't009']
 
 # run only 1 test
-excludeset.remove('t005')
+excludeset.remove('t000')
 
 # run all tests
 excludeset = ['']
@@ -86,9 +86,7 @@ class wad_Budget_testcases ( TestCase ):
 
   # this method returns the test system back to its initialization state
   def doCleanups ( self ):
-    
-    return
-    
+  
     client = adwords.AdWordsClient.LoadFromStorage()
         
     # create a list of all current budgets
@@ -100,14 +98,13 @@ class wad_Budget_testcases ( TestCase ):
       if budget['budgetId'] not in self.startingbudgetsids:
         # if it is not in the list then remove the budget
         Budget.removebudget ( client, budget['budgetId'] )
-        
-        
-    
+
+
 
   @skipIf ( 't000' in excludeset, 'Excluding test t000' )
   def test_t000_wad_Budget_add_remove_usingaddremove(self):
     
-    
+    print ( 'wad_Budget test t000' )
     
     client = adwords.AdWordsClient.LoadFromStorage()
     
@@ -154,6 +151,8 @@ class wad_Budget_testcases ( TestCase ):
 
   @skipIf ( 't001' in excludeset, 'Excluding test t001' )
   def test_t001_wad_Budget_sync_add_remove_usingaddremove ( self ):
+    
+    print ( 'wad_Budget test t001' )
     
     client = adwords.AdWordsClient.LoadFromStorage()
 
@@ -206,6 +205,8 @@ class wad_Budget_testcases ( TestCase ):
   @skipIf ( 't002' in excludeset, 'Excluding test t002' )
   def test_t002_wad_Budget_add_remove_usingsync(self):
     
+    print ( 'wad_Budget test t002' )
+    
     client = adwords.AdWordsClient.LoadFromStorage()
     
     # creates three new budgets  
@@ -253,6 +254,8 @@ class wad_Budget_testcases ( TestCase ):
 
   @skipIf ( 't003' in excludeset, 'Excluding test t003' )
   def test_t003_wad_Budget_sync_add_remove_usingsync ( self ):
+    
+    print ( 'wad_Budget test t003' )
     
     client = adwords.AdWordsClient.LoadFromStorage()
 
@@ -306,7 +309,14 @@ class wad_Budget_testcases ( TestCase ):
   @skipIf ( 't004' in excludeset, 'Excluding test t004' )
   def test_t004_wad_Budget_sync_modify ( self ):
     
+    print ( 'wad_Budget test t004' )
+    
     client = adwords.AdWordsClient.LoadFromStorage()
+    
+    # add 3 budgets to aw only
+    budget0 = Budget._aw_addbudget ( client, 'test_t004_budget0', 7000000000 )
+    budget1 = Budget._aw_addbudget ( client, 'test_t004_budget1', 7000000000 )
+    budget2 = Budget._aw_addbudget ( client, 'test_t004_budget2', 7000000000 )
     
     # initial sync
     Budget.sync ( client )
@@ -316,7 +326,7 @@ class wad_Budget_testcases ( TestCase ):
     # queryset used to modify values
     beginningbudgets = Budget.objects.all()
     
-    # make sure we are working with querysets that aren't empty, should be at least 3 b/c of SetUp
+    # make sure we are working with querysets that aren't empty, should be at least 3
     self.assertTrue ( len ( beginningbudgets ) >= 3 )
     self.assertTrue ( len ( beginningbudgets_control ) >= 3 )
     
@@ -349,9 +359,16 @@ class wad_Budget_testcases ( TestCase ):
       self.assertEqual ( controlbudget.budgetamount, budget.budgetamount )
       
       
+    # remove the budgets we initially created
+    Budget.removebudget ( client, budget0['budgetId'] )
+    Budget.removebudget ( client, budget1['budgetId'] )
+    Budget.removebudget ( client, budget2['budgetId'] )
+
     
   @skipIf ( 't005' in excludeset, 'Excluding test t005' )
   def test_t005_wad_Budget_create_remove_sync( self ):
+    
+    print ( 'wad_Budget test t005' )
     
     client = adwords.AdWordsClient.LoadFromStorage()
     
@@ -384,21 +401,24 @@ class wad_Budget_testcases ( TestCase ):
   @skipIf ( 't006' in excludeset, 'Excluding test t006' )
   def test_t006_wad_Budget_pre_init ( self ):
     
-    return
+    print ( 'wad_Budget test t006' )
     
-    # try to init a new budget with the same name as the setup/teardown budget   
+    newbudget0 = Budget ( budgetname = 'test006_budget0name0' )
+    newbudget0.save()
+    
+    # try to init a new budget with the same name as the previous budget
     with self.assertRaises ( suds.WebFault ):
-      newbudget0 = Budget ( budgetname='test_setup_budget0' )
+      newbudget1 = Budget ( budgetname = 'test006_budget0name0' )
+      newbudget1.save()
     
+    newbudget0.delete()
     
-    
-#    try:
-#      budget0 = Budget ( )
-#    except Error as e:
-#      print ( e )
+
     
   @skipIf ( 't007' in excludeset, 'Excluding test t007' )
   def test_t007_wad_Budget_save ( self ):
+    
+    print ( 'wad_Budget test t007' )
     
     # save a new instance
     
@@ -410,18 +430,78 @@ class wad_Budget_testcases ( TestCase ):
     # modify an existing instance
     
     
+  @skipIf ( 't008' in excludeset, 'Excluding test t008' )
+  def test_t008_wad_Budget_save_update ( self ):
+    
+    print ( 'wad_Budget test t008' )
+    
+    client = adwords.AdWordsClient.LoadFromStorage()
+    
+    # test budget name modification #
+    
+    # create a budget with a name
+    newbudget0 = Budget ( budgetname='test008_budget0name0' )
+    newbudget0.save()
+    
+    # check that the name is correct
+    aw_budget = Budget.getbudget ( client, newbudget0.budgetid )
+    self.assertEqual ( aw_budget['name'], 'test008_budget0name0' )
+    
+    # change the name
+    newbudget0.budgetname = 'test008_budget0name0_modified'
+    newbudget0.save()
+    
+    # check that the name change is correct
+    aw_budget = Budget.getbudget ( client, newbudget0.budgetid )
+    self.assertEqual ( aw_budget['name'], 'test008_budget0name0_modified' )
     
     
+    # test budget amount modification #
     
-#    try:
-#      newbudget0 = Budget ( budgetname='test_setup_budget0' )
-#    except:
-#      pass
+    # create a budget with an amount
+    newbudget1 = Budget ( budgetname = 'test008_budget1name1', budgetamount = '50000000' )
+    newbudget1.save()
     
+    # check that the amount is correct
+    aw_budget = Budget.getbudget ( client, newbudget1.budgetid )
+    self.assertEqual ( int ( aw_budget['amount']['microAmount'] ), 50000000 )
+    
+    # change the amount
+    newbudget1.budgetamount = '60000000'
+    newbudget1.save()
+    
+    # check that the amount change is correct
+    aw_budget = Budget.getbudget ( client, newbudget1.budgetid )
+    self.assertEqual ( int ( aw_budget['amount']['microAmount'] ), 60000000 )
+    
+    # clean up
+    newbudget0.delete()
+    newbudget1.delete()
+    
+ 
     
                           
                           
+  @skipIf ( 't009' in excludeset, 'Excluding test t009' )
+  def test_t009_wad_Budget_addbudget_removebudget ( self ):
     
+    print ( 'wad_Budget test t009' )
+    
+    # save a new instance
+    
+    client = adwords.AdWordsClient.LoadFromStorage()
+    
+    rslt = Budget._aw_addbudget ( client, 'test_t009_budget0' )
+    
+    Budget.removebudget ( client, rslt['budgetId'] )
+
+    rslt = Budget.addbudget ( client, 'test_t010_budget1')
+    
+    rslt = Budget.removebudget ( client, rslt.budgetid )
+    
+    
+    # modify an existing instance
+
     
     
     

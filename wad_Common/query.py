@@ -3,7 +3,8 @@ from time import sleep
 from math import ceil
 #from wad import settings
 
-SLEEP_AFTER_API_CALL = 5
+#SLEEP_AFTER_API_CALL = 5
+SLEEP_AFTER_API_CALL = 1
 
 def list_from_query ( client, service, query ):
 
@@ -18,6 +19,9 @@ def list_from_query ( client, service, query ):
 
   # DEBUG print
   #print ( page )
+
+  # return an empty list if totalNumEntries is not in page
+  if ( 'totalNumEntries' not in page ): return []
 
   # determines number of pages
   number_of_pages = ceil ( (page.totalNumEntries)  / (PAGE_SIZE) )

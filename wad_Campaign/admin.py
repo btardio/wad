@@ -11,7 +11,8 @@ class CampaignAdmin(admin.ModelAdmin):
   
   list_display = ( 'campaignname', 'campaignid', 'id',)
   
-  readonly_fields = ( 'campaignid', 'campaignstatus', 'campaignname' )
+  readonly_fields = ( 'campaignid', 'campaignstatus', 'campaignname', 
+                      'campaignadchanneltype', 'campaignbudget' )
   
   def save_model ( self, request, obj, form, change ):
     

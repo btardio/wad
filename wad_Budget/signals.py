@@ -22,18 +22,10 @@ def receiver_pre_save ( **kwargs ):
   # save determines which one based on whether the object
   # has a budgetid != None
   
-  #print ( instance.budgetid )
-  #print ( instance.budgetname )
-  #print ( instance.budgetamount )
-  #print ( instance.budgetdeliverymethod )
-  #print ( instance.budgetstatus )
-  #print ( instance.id )
-  
-  #print ( "sync_aw: %s" % instance.sync_aw )
   
   # this variable is set in the overridden save method, if it is set to
   # false save is probably being called from Budget.addbudget 
-  # or Budget.removebudget
+  # or Budget.removebudget, or specified by kwargs
   if ( instance.sync_aw ) :
   
     # we are adding a new item
@@ -65,7 +57,7 @@ def receiver_pre_save ( **kwargs ):
 
 
     
-request_finished.connect(receiver_pre_save, dispatch_uid="receiver_pre_save_unique_identifier")
+request_finished.connect(receiver_pre_save, dispatch_uid="budget_receiver_pre_save_unique_identifier")
 
 
 @receiver(pre_delete, sender=Budget)
@@ -76,16 +68,21 @@ def receiver_pre_delete ( **kwargs ):
 
   instance = kwargs['instance']
   
-  mutatestring = Budget.deldict ( instance.budgetid )
-  
-  rslts = service.mutate ( [mutatestring] )
-  
-  if ( rslts['value'][0]['status'] != 'REMOVED' ):
-    raise IOError('Django Adwords did not successfully set the item to "REMOVED"')
+  # this variable is set in the overridden delete method, if it is set to
+  # false save is probably being called from Budget.addbudget 
+  # or Budget.removebudget, or specified by kwargs
+  if ( instance.sync_aw ) :
+
+    mutatestring = Budget.deldict ( instance.budgetid )
+    
+    rslts = service.mutate ( [mutatestring] )
+    
+    if ( rslts['value'][0]['status'] != 'REMOVED' ):
+      raise IOError('Django Adwords did not successfully set the item to "REMOVED"')
 
   
     
-request_finished.connect(receiver_pre_delete, dispatch_uid="receiver_pre_delete_unique_identifier")
+request_finished.connect(receiver_pre_delete, dispatch_uid="budget_receiver_pre_delete_unique_identifier")
     
 
 
