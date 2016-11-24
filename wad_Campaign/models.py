@@ -61,7 +61,10 @@ class Campaign ( models.Model ):
                                        related_name='budget', 
                                        related_query_name='budget',
                                        on_delete=models.PROTECT,
-                                       help_text='wad_Budget.Budget.')
+                                       help_text='wad_Budget.Budget.',
+                                       default=None,
+                                       null=True,
+                                       blank=True)
   
   campaigntargetgooglesearch = models.BooleanField ( default = True )
   campaigntargetsearchnetwork = models.BooleanField ( default = False )
