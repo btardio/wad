@@ -9,17 +9,14 @@ from wad_Budget.models import Budget
 # TODO: check for existing campaigns in django before adding a new 
 #       one of same name/id
 
-class Campaign ( models.Model ):
+class Campaign(models.Model):
   """
   The Campaign class stores campaign id, campaign status, campaign
   name, campaign ad channel type and a foreign key to 
   wad_Budget.Budget. The class uses the Google AdWords CampaignService
   to make mutate calls and queries.
   """
-
-  class Meta:
-    app_label = 'Campaign'
-     
+  
   STATE_ENABLED = 'ENABLED'
   STATE_PAUSED = 'PAUSED'
   STATE_REMOVED = 'REMOVED'
@@ -75,6 +72,10 @@ class Campaign ( models.Model ):
   
   internalcampaigncreationdate = models.DateTimeField(auto_now_add=True)
   internalcampaignrefreshdate = models.DateTimeField(auto_now=True)
+
+
+  class Meta:
+    app_label = 'wad_Campaign'
 
   #
   # Returns the service obj
@@ -746,7 +747,7 @@ class Campaign ( models.Model ):
             
             updated = True
 
-          print awcampaignobj
+          print ( awcampaignobj )
 
           if obj.campaigntargetgooglesearch != awcampaignobj['networkSetting']['targetGoogleSearch']:
             
