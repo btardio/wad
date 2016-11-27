@@ -9,6 +9,9 @@ class Budget ( models.Model ):
   """The Budget class stores budgetid, budgetname, budgetamount and 
      budgetstatus corresponding to an AdWords Budget object."""
 
+  class Meta:
+    app_label = 'Budget'
+
   STATE_ENABLED = 'ENABLED'
   STATE_PAUSED = 'PAUSED'
   STATE_REMOVED = 'REMOVED'

@@ -16,6 +16,9 @@ class Campaign ( models.Model ):
   wad_Budget.Budget. The class uses the Google AdWords CampaignService
   to make mutate calls and queries.
   """
+
+  class Meta:
+    app_label = 'Campaign'
      
   STATE_ENABLED = 'ENABLED'
   STATE_PAUSED = 'PAUSED'
